@@ -2,8 +2,7 @@ name: Tapmad Playlist Auto Update
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
-  workflow_dispatch:
+    - cron: '0 */3 * * *'
 
 permissions:
   contents: write
@@ -32,5 +31,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add Tapmad.m3u Tapmad_data.json
-          git diff --cached --quiet || git commit -m "Auto update Tapmad playlist and JSON"
-          git push
+          if ! git diff --staged --quiet; then
+            git commit -m "Auto update Tapmad playlist and JSON"
+            git push origin main
+          else
+            echo "No changes to Tapmad.m3u or Tapmad_data.json"
+          fi
