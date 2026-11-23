@@ -1,5 +1,4 @@
-
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 import os
 import requests
@@ -13,6 +12,11 @@ JSON_OUTPUT_FILE = "Tapmad_data.json"
 OWNER_NAME = "Shawon"
 TELEGRAM_LINK = "https://t.me/+VqDOF_-beaQyMWY1"
 
+HEADERS = {
+    "User-Agent": "Mozilla/5.0",
+    "Cache-Control": "no-cache",
+}
+
 
 def clean_escaped_url(val):
     if not isinstance(val, str):
@@ -21,7 +25,7 @@ def clean_escaped_url(val):
 
 
 def build_from_m3u(bd_time):
-    resp = requests.get(M3U_SOURCE_URL, timeout=25)
+    resp = requests.get(M3U_SOURCE_URL, headers=HEADERS, timeout=25)
     resp.raise_for_status()
     lines = resp.text.splitlines()
 
@@ -67,7 +71,7 @@ def update_tapmad():
 
     # 1. JSON ডেটা ফেচ ও আপডেট
     try:
-        j_resp = requests.get(JSON_SOURCE_URL, timeout=25)
+        j_resp = requests.get(JSON_SOURCE_URL, headers=HEADERS, timeout=25)
         j_resp.raise_for_status()
         j_data = j_resp.json()
         if isinstance(j_data, dict):
@@ -88,28 +92,31 @@ def update_tapmad():
         print(f"Warning while updating {JSON_OUTPUT_FILE}: {e}")
 
     # 2. M3U প্লেলিস্ট আপডেট
-    m3u_content, count = build_from_m3u(bd_time)
-    if not m3u_content or count == 0:
-        print(f"No Tapmad stream entries found at {bd_time}. Skipping overwrite to keep workflow clean.")
-        if not os.path.exists(M3U_OUTPUT_FILE):
-            header_only = [
-                "#EXTM3U",
-                "# ==========================================",
-                f"# Developed by: {OWNER_NAME}",
-                f"# Telegram: {TELEGRAM_LINK}",
-                f"# Last Updated: {bd_time} (BD Time)",
-                "# Channels Count: 0",
-                "# ==========================================",
-                "",
-            ]
-            with open(M3U_OUTPUT_FILE, "w", encoding="utf-8") as mf:
-                mf.write("\n".join(header_only))
-        return
+    try:
+        m3u_content, count = build_from_m3u(bd_time)
+        if not m3u_content or count == 0:
+            print(f"No Tapmad stream entries found at {bd_time}. Skipping overwrite to keep workflow clean.")
+            if not os.path.exists(M3U_OUTPUT_FILE):
+                header_only = [
+                    "#EXTM3U",
+                    "# ==========================================",
+                    f"# Developed by: {OWNER_NAME}",
+                    f"# Telegram: {TELEGRAM_LINK}",
+                    f"# Last Updated: {bd_time} (BD Time)",
+                    "# Channels Count: 0",
+                    "# ==========================================",
+                    "",
+                ]
+                with open(M3U_OUTPUT_FILE, "w", encoding="utf-8") as mf:
+                    mf.write("\n".join(header_only))
+            return
 
-    with open(M3U_OUTPUT_FILE, "w", encoding="utf-8") as mf:
-        mf.write(m3u_content)
+        with open(M3U_OUTPUT_FILE, "w", encoding="utf-8") as mf:
+            mf.write(m3u_content)
 
-    print(f"Updated {M3U_OUTPUT_FILE} with {count} channels at {bd_time}")
+        print(f"Updated {M3U_OUTPUT_FILE} with {count} channels at {bd_time}")
+    except Exception as e:
+        print(f"Warning while updating {M3U_OUTPUT_FILE}: {e}")
 
 
 if __name__ == "__main__":
