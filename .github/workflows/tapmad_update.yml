@@ -2,7 +2,7 @@ name: Tapmad Playlist Auto Update
 
 on:
   schedule:
-    - cron: '0 */3 * * *'
+    - cron: '0 */30 * * *'
   workflow_dispatch:
 
 permissions:
